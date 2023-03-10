@@ -35,7 +35,7 @@ void *malloc(size_t size) {
     }
 
     total_size = size + sizeof(struct header_t);
-    block = sbrk(total_size); // todo: align to 16-byte
+    block = sbrk(total_size); // todo: align to 16-byte or page-size
     if (block == (void *)-1) {
         pthread_mutex_unlock(&mtx);
         return NULL;
@@ -57,12 +57,36 @@ void *malloc(size_t size) {
     return (void *)(header + 1);
 }
 
-int main(void) {
-    printf("sizeof header is %zd\n", sizeof(struct header_t));
-    void *ptr = sbrk(0);
-    printf("program break is %p\n", ptr);
-    malloc(16);
-    void *new_ptr = sbrk(0);
-    printf("program break is %p\n", new_ptr);
-    printf("memory size: %ld\n", (long)new_ptr - (long)ptr);
+void free(void *ptr) {
+    struct header_t *header, *temp;
+    void *program_break;
+
+    if (ptr == NULL) {
+        return;
+    }
+    pthread_mutex_lock(&mtx);
+    header = (struct header_t *)program_break - 1;
+
+    program_break = sbrk(0);
+
+    // at the top of heap
+    if ((char *)ptr + header->size == program_break) {
+        if (head == tail) {
+            head = tail = NULL;
+        } else {
+            temp = head;
+            while (temp != NULL) {
+                if (temp->next == tail) {
+                    temp->next = NULL;
+                    tail = temp;
+                }
+                temp = temp->next;
+            }
+        }
+        sbrk(0 - sizeof(struct header_t) - header->size);
+        pthread_mutex_unlock(&mtx);
+        return;
+    }
+    header->is_free = 1;
+    pthread_mutex_unlock(&mtx);
 }
