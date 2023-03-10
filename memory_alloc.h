@@ -3,13 +3,12 @@
 
 #include <unistd.h>
 
-#pragma pack(16)
 struct header_t {
     size_t size;
     int is_free;
     struct header_t *next;
-};
-#pragma pack()
+}__attribute__((aligned(16)));
+
 
 void *malloc(size_t size);
 void *calloc(size_t num, size_t size);
