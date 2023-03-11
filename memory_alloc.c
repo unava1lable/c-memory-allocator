@@ -29,6 +29,18 @@ static void *memset(void *str, int c, size_t n) {
     return str;
 }
 
+static void *memcpy(void *dest, const void *src, size_t size) {
+    if (dest == NULL || src == NULL) {
+        return;
+    }
+    char *d = (char *)dest;
+    const char *s = (const char *)src;
+    while (size--) {
+        *d++ = *s++;
+    }
+    return dest;
+}
+
 void *malloc(size_t size) {
     size_t total_size;
     void *block;
@@ -117,4 +129,24 @@ void *calloc(size_t num, size_t size) {
     }
     memset(block, 0, size);
     return block;
+}
+
+void *realloc(void *ptr, size_t new_size) {
+    struct header_t *header;
+    void *ret;
+
+    if (ptr == NULL || new_size == 0) {
+        return malloc(new_size);
+    }
+    header = (struct header_t *)ptr - 1;
+    if (header->size >= new_size) {
+        return ptr;
+    }
+    ret = malloc(new_size);
+    if (ret != NULL) {
+        memcpy(ret, ptr, header->size);
+        free(ptr);
+    }
+
+    return ret;
 }
