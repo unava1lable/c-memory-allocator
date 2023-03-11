@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#define PAGESIZE 4096
+
 static struct header_t *head, *tail;
 static pthread_mutex_t mtx = PTHREAD_MUTEX_INITIALIZER;
 
@@ -58,6 +60,7 @@ void *malloc(size_t size) {
         return (void *)(header + 1); // escape header part
     }
 
+    size = (size / 4096) * 4096 + ((size % 4096 == 0) ? 0 : 4096);
     total_size = size + sizeof(struct header_t);
     block = sbrk(total_size); // todo: align to 16-byte or page-size
     if (block == (void *)-1) {
