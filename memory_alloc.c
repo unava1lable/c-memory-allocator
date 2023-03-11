@@ -1,3 +1,4 @@
+#define _DEFAULT_SOURCE // to use MAP_ANONYMOUS flag
 #include "memory_alloc.h"
 #include <pthread.h>
 #include <stdlib.h>
@@ -23,14 +24,17 @@ static struct header_t *get_free_block(size_t size) {
     return NULL;
 }
 
-static void *sbrk_alloc(size_t size) {
-    // todo
-    return NULL;
+static inline void *sbrk_alloc(size_t size) {
+    void *block = sbrk(size);
+    return block;
 }
 
 static void *mmap_alloc(size_t size) {
-    // todo
-    return NULL;
+    void *block = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_ANONYMOUS, -1, 0);
+    if (block == MAP_FAILED) {
+        return (void *)-1;
+    }
+    return block;
 }
 
 static void *memset(void *str, int c, size_t n) {
@@ -70,7 +74,7 @@ void *malloc(size_t size) {
     if (header) {
         header->is_free = 0;
         pthread_mutex_unlock(&mtx);
-        return (void *)(header + 1); // escape header part
+        return (void *)(header + 1); // skip header block
     }
 
     // align to pagesize (4096-byte)
