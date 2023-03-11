@@ -31,7 +31,7 @@ static void *memset(void *str, int c, size_t n) {
 
 static void *memcpy(void *dest, const void *src, size_t size) {
     if (dest == NULL || src == NULL) {
-        return;
+        return NULL;
     }
     char *d = (char *)dest;
     const char *s = (const char *)src;
@@ -89,7 +89,7 @@ void free(void *ptr) {
         return;
     }
     pthread_mutex_lock(&mtx);
-    header = (struct header_t *)program_break - 1;
+    header = (struct header_t *)ptr - 1;
 
     program_break = sbrk(0);
 
