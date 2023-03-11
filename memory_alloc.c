@@ -1,5 +1,6 @@
 #include "memory_alloc.h"
 #include <pthread.h>
+#include <stdlib.h>
 #include <unistd.h>
 
 static struct header_t *head, *tail;
@@ -15,6 +16,17 @@ static struct header_t *get_free_block(size_t size) {
         cur = cur->next;
     }
     return NULL;
+}
+
+static void *memset(void *str, int c, size_t n) {
+    unsigned char uc = c;
+    unsigned char *c_str;
+    
+    for (c_str = str; n > 0; c_str++, n--) {
+        *c_str = uc;
+    }
+
+    return str;
 }
 
 void *malloc(size_t size) {
@@ -89,4 +101,20 @@ void free(void *ptr) {
     }
     header->is_free = 1;
     pthread_mutex_unlock(&mtx);
+}
+
+void *calloc(size_t num, size_t size) {
+    if (num == 0 || size == 0) {
+        return NULL;
+    }
+
+    size_t total_size = num * size;
+    void *block;
+
+    block = malloc(total_size);
+    if (block == NULL) {
+        return block;
+    }
+    memset(block, 0, size);
+    return block;
 }
