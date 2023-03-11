@@ -2,8 +2,11 @@
 #include <pthread.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <sys/mman.h>
 
-#define PAGESIZE 4096
+// if size >= LIMIT, use mmap() to allocate memory
+// if size < LIMIT, use sbrk() to allocate memory
+#define LIMIT 128 * 1024
 
 static struct header_t *head, *tail;
 static pthread_mutex_t mtx = PTHREAD_MUTEX_INITIALIZER;
@@ -17,6 +20,16 @@ static struct header_t *get_free_block(size_t size) {
         }
         cur = cur->next;
     }
+    return NULL;
+}
+
+static void *sbrk_alloc(size_t size) {
+    // todo
+    return NULL;
+}
+
+static void *mmap_alloc(size_t size) {
+    // todo
     return NULL;
 }
 
@@ -60,9 +73,10 @@ void *malloc(size_t size) {
         return (void *)(header + 1); // escape header part
     }
 
+    // align to pagesize (4096-byte)
     size = (size / 4096) * 4096 + ((size % 4096 == 0) ? 0 : 4096);
     total_size = size + sizeof(struct header_t);
-    block = sbrk(total_size); // todo: align to 16-byte or page-size
+    block = sbrk(total_size);
     if (block == (void *)-1) {
         pthread_mutex_unlock(&mtx);
         return NULL;
@@ -92,11 +106,13 @@ void free(void *ptr) {
         return;
     }
     pthread_mutex_lock(&mtx);
+    
+    // get header block
     header = (struct header_t *)ptr - 1;
 
     program_break = sbrk(0);
 
-    // at the top of heap
+    // if the block is at the top of heap, release it
     if ((char *)ptr + header->size == program_break) {
         if (head == tail) {
             head = tail = NULL;
